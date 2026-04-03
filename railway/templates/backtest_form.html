@@ -10,6 +10,15 @@
                 <i class="bi bi-play-circle"></i> Run Strategy Backtest
             </div>
             <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    <br><br>
+                    <strong>Solution:</strong> Make sure you have uploaded historical data for the selected symbol and date range.
+                    <a href="/data" class="alert-link">Go to Data page</a>
+                </div>
+                {% endif %}
+
                 <form method="post" action="/backtest/run">
                     <div class="mb-3">
                         <label class="form-label">Symbol</label>
@@ -63,8 +72,9 @@
 
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Note:</strong> Make sure historical data is uploaded for the selected date range.
-                        <a href="/data" class="alert-link">Go to Data page</a> to upload.
+                        <strong>Before running:</strong> Make sure historical data is uploaded for the selected symbol and date range.
+                        <br>
+                        <strong>Check data:</strong> <a href="/data" class="alert-link">Go to Data page</a> to verify.
                     </div>
 
                     <div class="d-flex justify-content-between">

@@ -291,7 +291,8 @@ def backtests():
 @app.route('/backtest/new')
 def backtest_new():
     """New backtest form"""
-    return render_template('backtest_form.html', symbols=SYMBOL_CONFIG.keys())
+    error = request.args.get('error', '')
+    return render_template('backtest_form.html', symbols=list(SYMBOL_CONFIG.keys()) + ['NIFTY_SPOT', 'NIFTY_FUT', 'BANKNIFTY_SPOT', 'BANKNIFTY_FUT'], error=error)
 
 
 @app.route('/backtest/run', methods=['POST'])
@@ -307,47 +308,59 @@ def backtest_run():
     sl = int(request.form.get('sl', 30))
     volume_confirm = float(request.form.get('volume_confirm', 2.0))
 
-    # Run backtest
-    engine = ORBBacktestEngine(
-        symbol=symbol,
-        start_date=start_date,
-        end_date=end_date,
-        orb_duration=orb_duration,
-        target=target,
-        sl=sl,
-        volume_confirm=volume_confirm,
-        db_session=db.session  # Pass the Flask-SQLAlchemy session
-    )
+    try:
+        # Run backtest
+        engine = ORBBacktestEngine(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            orb_duration=orb_duration,
+            target=target,
+            sl=sl,
+            volume_confirm=volume_confirm,
+            db_session=db.session  # Pass the Flask-SQLAlchemy session
+        )
 
-    results = engine.run()
+        results = engine.run()
 
-    # Save to database
-    backtest = BacktestResult(
-        name=f"{symbol} Strategy Backtest",
-        symbol=symbol,
-        start_date=datetime.strptime(start_date, '%Y-%m-%d').date(),
-        end_date=datetime.strptime(end_date, '%Y-%m-%d').date(),
-        orb_duration=orb_duration,
-        target=target,
-        sl=sl,
-        volume_confirm=volume_confirm,
-        total_trades=results['total_trades'],
-        winning_trades=results['winning_trades'],
-        losing_trades=results['losing_trades'],
-        win_rate=results['win_rate'],
-        total_pnl=results['total_pnl'],
-        total_points=results['total_points'],
-        avg_win=results['avg_win'],
-        avg_loss=results['avg_loss'],
-        profit_factor=results['profit_factor'],
-        max_drawdown=results['max_drawdown'],
-        max_drawdown_pct=results['max_drawdown_pct']
-    )
+        # Save to database
+        backtest = BacktestResult(
+            name=f"{symbol} Strategy Backtest",
+            symbol=symbol,
+            start_date=datetime.strptime(start_date, '%Y-%m-%d').date(),
+            end_date=datetime.strptime(end_date, '%Y-%m-%d').date(),
+            orb_duration=orb_duration,
+            target=target,
+            sl=sl,
+            volume_confirm=volume_confirm,
+            total_trades=results['total_trades'],
+            winning_trades=results['winning_trades'],
+            losing_trades=results['losing_trades'],
+            win_rate=results['win_rate'],
+            total_pnl=results['total_pnl'],
+            total_points=results['total_points'],
+            avg_win=results['avg_win'],
+            avg_loss=results['avg_loss'],
+            profit_factor=results['profit_factor'],
+            max_drawdown=results['max_drawdown'],
+            max_drawdown_pct=results['max_drawdown_pct']
+        )
 
-    db.session.add(backtest)
-    db.session.commit()
+        db.session.add(backtest)
+        db.session.commit()
 
-    return redirect(url_for('backtest_view', id=backtest.id))
+        return redirect(url_for('backtest_view', id=backtest.id))
+
+    except ValueError as e:
+        # Handle expected errors (no data, invalid dates, etc.)
+        logger.error(f"Backtest ValueError: {e}")
+        return redirect(url_for('backtest_new', error=str(e)))
+    except Exception as e:
+        # Handle unexpected errors
+        logger.error(f"Backtest error: {e}")
+        import traceback
+        traceback.print_exc()
+        return redirect(url_for('backtest_new', error="Unexpected error occurred"))
 
 
 @app.route('/backtest/<int:id>')
