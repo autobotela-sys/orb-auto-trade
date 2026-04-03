@@ -143,6 +143,50 @@
         .status-dot.online { background-color: var(--orb-green); }
         .status-dot.offline { background-color: var(--orb-red); }
         .status-dot.warning { background-color: #ffc107; }
+
+        /* Form inputs - fix dark theme visibility */
+        .form-control, .form-select {
+            background-color: rgba(255,255,255,0.1) !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            color: #e0e0e0 !important;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(255,255,255,0.15) !important;
+            border-color: var(--orb-green) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 0.25rem rgba(0, 200, 83, 0.25) !important;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255,255,255,0.5) !important;
+        }
+
+        .form-label {
+            color: #e0e0e0 !important;
+            font-weight: 500;
+        }
+
+        .form-select option {
+            background-color: var(--orb-card) !important;
+            color: #e0e0e0 !important;
+        }
+
+        /* Date input color fix */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        /* Number input spinner buttons */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            filter: invert(1);
+        }
+
+        .text-muted {
+            color: rgba(255,255,255,0.6) !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>

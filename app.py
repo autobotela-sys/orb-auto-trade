@@ -315,7 +315,8 @@ def backtest_run():
         orb_duration=orb_duration,
         target=target,
         sl=sl,
-        volume_confirm=volume_confirm
+        volume_confirm=volume_confirm,
+        db_session=db.session  # Pass the Flask-SQLAlchemy session
     )
 
     results = engine.run()

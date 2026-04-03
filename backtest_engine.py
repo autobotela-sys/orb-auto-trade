@@ -14,7 +14,6 @@ import numpy as np
 
 from config import SYMBOL_CONFIG, BROKERAGE_PER_ORDER, STT_BUY_RATE, STT_SELL_RATE, \
     TRANSACTION_CHARGE_PER_CRORE, GST_RATE, STAMP_DUTY_RATE
-from app import db, HistoricalData
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,8 @@ class ORBBacktestEngine:
         orb_duration: int = 15,
         target: int = 50,
         sl: int = 30,
-        volume_confirm: float = 2.0
+        volume_confirm: float = 2.0,
+        db_session=None  # Pass Flask-SQLAlchemy session
     ):
         self.symbol = symbol.upper()
         self.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -47,6 +47,7 @@ class ORBBacktestEngine:
         self.target = target
         self.sl = sl
         self.volume_confirm = volume_confirm
+        self.db = db_session  # Store session for queries
 
         # Get config - try SYMBOL_CONFIG first, then DEFAULT_CONFIGS, then use fallback
         if self.symbol in SYMBOL_CONFIG:
@@ -65,9 +66,12 @@ class ORBBacktestEngine:
 
     def load_data(self) -> pd.DataFrame:
         """Load historical data from database"""
+        # Import here to avoid circular import
+        from app import HistoricalData
+
         logger.info(f"Loading data for {self.symbol} from {self.start_date} to {self.end_date}")
 
-        query = HistoricalData.query.filter_by(symbol=self.symbol)\
+        query = self.db.query(HistoricalData).filter_by(symbol=self.symbol)\
             .filter(HistoricalData.date >= self.start_date)\
             .filter(HistoricalData.date <= self.end_date)\
             .order_by(HistoricalData.date, HistoricalData.time)
