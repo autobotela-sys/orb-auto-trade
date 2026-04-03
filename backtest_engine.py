@@ -22,9 +22,17 @@ logger = logging.getLogger(__name__)
 class ORBBacktestEngine:
     """ORB Strategy backtest engine with database integration"""
 
+    # Default configs for backtesting when not in SYMBOL_CONFIG
+    DEFAULT_CONFIGS = {
+        'NIFTY_SPOT': {'lot_size': 50, 'tick_size': 0.05},
+        'NIFTY_FUT': {'lot_size': 50, 'tick_size': 0.05},
+        'BANKNIFTY_SPOT': {'lot_size': 15, 'tick_size': 0.05},
+        'BANKNIFTY_FUT': {'lot_size': 15, 'tick_size': 0.05},
+    }
+
     def __init__(
         self,
-        symbol: str = "NIFTY",
+        symbol: str = "NIFTY_FUT",
         start_date: str = "2020-01-01",
         end_date: str = "2024-12-31",
         orb_duration: int = 15,
@@ -40,8 +48,16 @@ class ORBBacktestEngine:
         self.sl = sl
         self.volume_confirm = volume_confirm
 
-        self.config = SYMBOL_CONFIG.get(self.symbol, SYMBOL_CONFIG['NIFTY'])
-        self.lot_size = self.config['lot_size']
+        # Get config - try SYMBOL_CONFIG first, then DEFAULT_CONFIGS, then use fallback
+        if self.symbol in SYMBOL_CONFIG:
+            self.config = SYMBOL_CONFIG[self.symbol]
+        elif self.symbol in self.DEFAULT_CONFIGS:
+            self.config = self.DEFAULT_CONFIGS[self.symbol]
+        else:
+            # Fallback to NIFTY_FUT defaults
+            self.config = self.DEFAULT_CONFIGS['NIFTY_FUT']
+
+        self.lot_size = self.config.get('lot_size', 50)
 
         # Results storage
         self.trades = []
