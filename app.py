@@ -529,18 +529,24 @@ def upload_historical_data():
         count = 0
         skipped = 0
         for _, row in df.iterrows():
-            # Check if exists
+            # Check if exists - match on symbol, date, time, AND OHLC values
+            # This prevents false duplicates when time is None
+            row_time = row['time'] if pd.notna(row['time']) else None
+
             existing = HistoricalData.query.filter_by(
                 symbol=symbol,
                 date=row['date'],
-                time=row['time'] if pd.notna(row['time']) else None
+                time=row_time
+            ).filter(
+                HistoricalData.open == float(row['open']),
+                HistoricalData.close == float(row['close'])
             ).first()
 
             if not existing:
                 data = HistoricalData(
                     symbol=symbol,
                     date=row['date'],
-                    time=row['time'] if pd.notna(row['time']) else None,
+                    time=row_time,
                     open=float(row['open']),
                     high=float(row['high']),
                     low=float(row['low']),
@@ -556,7 +562,7 @@ def upload_historical_data():
 
         message = f'Uploaded {count} new records for {symbol}'
         if skipped > 0:
-            message += f' (skipped {skipped} duplicates)'
+            message += f' (skipped {skipped} exact duplicates)'
 
         return jsonify({
             'status': 'success',
@@ -591,6 +597,23 @@ def api_historical_data():
         'count': len(data),
         'data': [d.to_dict() for d in data]
     })
+
+
+@app.route('/api/data/clear/<symbol>', methods=['DELETE'])
+def clear_historical_data(symbol):
+    """Clear all historical data for a symbol"""
+    try:
+        deleted = HistoricalData.query.filter_by(symbol=symbol.upper()).delete()
+        db.session.commit()
+
+        return jsonify({
+            'status': 'success',
+            'message': f'Deleted {deleted} records for {symbol.upper()}'
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Clear data error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/trades')

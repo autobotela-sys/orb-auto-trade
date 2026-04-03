@@ -85,6 +85,13 @@
                 </div>
 
                 <div id="dataInfo"></div>
+
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearData()">
+                        <i class="bi bi-trash"></i> Clear All Data for Symbol
+                    </button>
+                    <small class="text-muted d-block mt-1">⚠️ This will delete ALL historical data for selected symbol</small>
+                </div>
             </div>
         </div>
 
@@ -160,7 +167,7 @@ function checkData() {
 
     infoDiv.innerHTML = '<div class="text-center"><div class="loading"></div></div>';
 
-    fetch('/api/data/historical?symbol=' + symbol + '&limit=1')
+    fetch('/api/data/historical?symbol=' + symbol)
     .then(r => r.json())
     .then(data => {
         if (data.count > 0) {
@@ -182,6 +189,36 @@ function checkData() {
     })
     .catch(err => {
         infoDiv.innerHTML = '<div class="alert alert-danger">Failed to fetch data info</div>';
+    });
+}
+
+function clearData() {
+    const symbol = document.getElementById('checkSymbol').value;
+    if (!symbol) {
+        alert('Please select a symbol first');
+        return;
+    }
+
+    if (!confirm(`⚠️ Are you sure you want to DELETE ALL data for ${symbol}?\n\nThis cannot be undone!`)) {
+        return;
+    }
+
+    if (!confirm('🗑️ FINAL CONFIRMATION: Delete ALL ' + symbol + ' data?')) {
+        return;
+    }
+
+    fetch('/api/data/clear/' + symbol, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert('✅ ' + data.message);
+            checkData(); // Refresh the info
+        }
+    })
+    .catch(err => {
+        alert('Failed to clear data: ' + err);
     });
 }
 </script>
