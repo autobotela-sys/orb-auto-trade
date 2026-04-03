@@ -469,26 +469,78 @@ def upload_historical_data():
     try:
         df = pd.read_csv(file)
 
-        # Expected columns: date, time, open, high, low, close, volume
-        required_cols = ['date', 'open', 'high', 'low', 'close', 'volume']
-        if not all(col in df.columns for col in required_cols):
-            return jsonify({'error': f'Missing columns. Need: {required_cols}'}), 400
+        # Normalize column names to lowercase
+        df.columns = df.columns.str.strip().str.lower()
+
+        # Column name mapping for common variations
+        col_mapping = {
+            'datetime': 'date',
+            'timestamp': 'date',
+            'oi': 'oi',
+            'openinterest': 'oi'
+        }
+        df = df.rename(columns=col_mapping)
+
+        # Check for required columns
+        required_cols = ['open', 'high', 'low', 'close']
+        missing = [col for col in required_cols if col not in df.columns]
+
+        if missing:
+            return jsonify({
+                'error': f'Missing required columns: {missing}',
+                'found_columns': list(df.columns),
+                'hint': 'CSV must have: open, high, low, close (and optionally: date, time, volume)'
+            }), 400
+
+        # Handle date column - if not present, use index
+        if 'date' not in df.columns:
+            if 'datetime' in df.columns:
+                df['date'] = pd.to_datetime(df['datetime'])
+            elif 'timestamp' in df.columns:
+                df['date'] = pd.to_datetime(df['timestamp'])
+            else:
+                # Create dummy dates if no date column
+                df['date'] = pd.date_range(start='2020-01-01', periods=len(df), freq='D')
+
+        # Handle time column
+        if 'time' not in df.columns:
+            # Extract time from datetime if available, otherwise set to None
+            if 'datetime' in df.columns:
+                df['time'] = pd.to_datetime(df['datetime']).dt.time
+            else:
+                df['time'] = None
+        else:
+            df['time'] = pd.to_datetime(df['time'], errors='coerce').dt.time
+
+        # Handle volume column - if not present, set to 0
+        if 'volume' not in df.columns:
+            df['volume'] = 0
+
+        # Clean and convert data
+        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
+        for col in ['open', 'high', 'low', 'close']:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        df['volume'] = pd.to_numeric(df['volume'], errors='coerce').fillna(0).astype(int)
+
+        # Drop rows with invalid OHLC data
+        df = df.dropna(subset=['open', 'high', 'low', 'close', 'date'])
 
         # Insert into database
         count = 0
+        skipped = 0
         for _, row in df.iterrows():
             # Check if exists
             existing = HistoricalData.query.filter_by(
                 symbol=symbol,
-                date=pd.to_datetime(row['date']).date(),
-                time=pd.to_datetime(row['time']).time() if 'time' in row and pd.notna(row['time']) else None
+                date=row['date'],
+                time=row['time'] if pd.notna(row['time']) else None
             ).first()
 
             if not existing:
                 data = HistoricalData(
                     symbol=symbol,
-                    date=pd.to_datetime(row['date']).date(),
-                    time=pd.to_datetime(row['time']).time() if 'time' in row and pd.notna(row['time']) else None,
+                    date=row['date'],
+                    time=row['time'] if pd.notna(row['time']) else None,
                     open=float(row['open']),
                     high=float(row['high']),
                     low=float(row['low']),
@@ -497,12 +549,20 @@ def upload_historical_data():
                 )
                 db.session.add(data)
                 count += 1
+            else:
+                skipped += 1
 
         db.session.commit()
 
+        message = f'Uploaded {count} new records for {symbol}'
+        if skipped > 0:
+            message += f' (skipped {skipped} duplicates)'
+
         return jsonify({
             'status': 'success',
-            'message': f'Uploaded {count} records for {symbol}'
+            'message': message,
+            'uploaded': count,
+            'skipped': skipped
         }), 200
 
     except Exception as e:
