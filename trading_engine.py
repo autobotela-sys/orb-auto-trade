@@ -26,6 +26,27 @@ from config import (
     KITE_API_KEY, KITE_ACCESS_TOKEN, KITE_TOKENS
 )
 
+# Default configs for symbols not in SYMBOL_CONFIG (fallbacks)
+DEFAULT_SYMBOL_CONFIGS = {
+    'NIFTY_SPOT': {'lot_size': 50, 'tick_size': 0.05, 'target': 50, 'sl': 30, 'volume_confirm': 2.0, 'exchange': 'NSE'},
+    'NIFTY_FUT': {'lot_size': 50, 'tick_size': 0.05, 'target': 50, 'sl': 30, 'volume_confirm': 2.0, 'exchange': 'NSE'},
+    'BANKNIFTY_SPOT': {'lot_size': 15, 'tick_size': 0.05, 'target': 100, 'sl': 50, 'volume_confirm': 2.0, 'exchange': 'NSE'},
+    'BANKNIFTY_FUT': {'lot_size': 15, 'tick_size': 0.05, 'target': 100, 'sl': 50, 'volume_confirm': 2.0, 'exchange': 'NSE'},
+}
+
+
+def get_symbol_safe_config(symbol: str) -> dict:
+    """Get symbol config with fallback to defaults"""
+    symbol = symbol.upper()
+    if symbol in SYMBOL_CONFIG:
+        return SYMBOL_CONFIG[symbol]
+    elif symbol in DEFAULT_SYMBOL_CONFIGS:
+        return DEFAULT_SYMBOL_CONFIGS[symbol]
+    else:
+        # Return NIFTY_FUT as ultimate fallback
+        return DEFAULT_SYMBOL_CONFIGS['NIFTY_FUT']
+
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -159,7 +180,7 @@ class PositionManager:
 
     def get_position_size(self, symbol: str, price: float) -> int:
         """Calculate position size based on risk"""
-        config = SYMBOL_CONFIG[symbol]
+        config = get_symbol_safe_config(symbol)
         lot_size = config['lot_size']
         sl_points = config['sl']
 
@@ -197,7 +218,7 @@ class PositionManager:
             logger.warning(f"Entry blocked: {reason}")
             return None
 
-        config = SYMBOL_CONFIG[signal.symbol]
+        config = get_symbol_safe_config(signal.symbol)
         direction = Direction.LONG if signal.direction.upper() == "LONG" else Direction.SHORT
 
         # Calculate position size
@@ -396,7 +417,7 @@ class ORBTradingEngine:
         logger.info(f"📡 Signal received: {signal.direction} {signal.symbol} @ {signal.entry_price:.2f}")
 
         # Check volume confirmation
-        if signal.volume_ratio < SYMBOL_CONFIG[signal.symbol]['volume_confirm']:
+        if signal.volume_ratio < get_symbol_safe_config(signal.symbol)['volume_confirm']:
             logger.warning(f"❌ Volume too low: {signal.volume_ratio:.2f}x")
             return False
 
@@ -431,7 +452,7 @@ class ORBTradingEngine:
                 logger.error(f"❌ No kite token for {position.symbol}")
                 return False
 
-            config = SYMBOL_CONFIG[position.symbol]
+            config = get_symbol_safe_config(position.symbol)
             exchange = config['exchange']
 
             # Place order

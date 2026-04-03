@@ -327,7 +327,7 @@ class ORBBacktestEngine:
         }
 
 
-def run_quick_backtest(symbol: str = "NIFTY", days: int = 30) -> Dict:
+def run_quick_backtest(symbol: str = "NIFTY_FUT", days: int = 30) -> Dict:
     """Quick backtest for last N days"""
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=days)
@@ -347,5 +347,5 @@ def run_quick_backtest(symbol: str = "NIFTY", days: int = 30) -> Dict:
 
 if __name__ == '__main__':
     # Quick test
-    results = run_quick_backtest('NIFTY', 30)
+    results = run_quick_backtest('NIFTY_FUT', 30)
     print(results)

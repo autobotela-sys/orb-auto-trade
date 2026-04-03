@@ -99,16 +99,20 @@ def parse_tradingview_alert(body: dict) -> Optional[Signal]:
         volume_ratio = float(parts[5].strip())
         direction = parts[6].strip().upper()
 
-        # Map symbol
+        # Map symbol to new naming convention
         symbol_map = {
-            'NIFTY': 'NIFTY',
-            'NIFTYFUT': 'NIFTY',
-            'BANKNIFTY': 'BANKNIFTY',
-            'BANKNIFTYFUT': 'BANKNIFTY',
-            'FINNIFTY': 'FINNIFTY',
-            'FINNIFTYFUT': 'FINNIFTY',
+            'NIFTY': 'NIFTY_SPOT',
+            'NIFTYFUT': 'NIFTY_FUT',
+            'NIFTY_FUT': 'NIFTY_FUT',
+            'NIFTY SPOT': 'NIFTY_SPOT',
+            'BANKNIFTY': 'BANKNIFTY_SPOT',
+            'BANKNIFTYFUT': 'BANKNIFTY_FUT',
+            'BANKNIFTY_FUT': 'BANKNIFTY_FUT',
+            'BANKNIFTY SPOT': 'BANKNIFTY_SPOT',
+            'NIFTYFUTURES': 'NIFTY_FUT',
+            'BANKNIFTYFUTURES': 'BANKNIFTY_FUT',
         }
-        symbol = symbol_map.get(symbol_part.upper(), 'NIFTY')
+        symbol = symbol_map.get(symbol_part.upper(), 'NIFTY_FUT')
 
         # Validate direction
         if direction not in ['LONG', 'SHORT', 'BUY', 'SELL']:

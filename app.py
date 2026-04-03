@@ -460,7 +460,7 @@ def upload_historical_data():
         return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
-    symbol = request.form.get('symbol', 'NIFTY')
+    symbol = request.form.get('symbol', 'NIFTY_FUT')
 
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
@@ -579,7 +579,7 @@ def upload_historical_data():
 @app.route('/api/data/historical')
 def api_historical_data():
     """Get historical data for backtesting"""
-    symbol = request.args.get('symbol', 'NIFTY')
+    symbol = request.args.get('symbol', 'NIFTY_FUT')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
 
@@ -652,13 +652,20 @@ def parse_tradingview_alert(data):
         volume_ratio = float(parts[5].strip())
         direction = parts[6].strip().upper()
 
-        # Map symbol
+        # Map symbol to new naming convention
         symbol_map = {
-            'NIFTY': 'NIFTY', 'NIFTYFUT': 'NIFTY',
-            'BANKNIFTY': 'BANKNIFTY', 'BANKNIFTYFUT': 'BANKNIFTY',
-            'FINNIFTY': 'FINNIFTY', 'FINNIFTYFUT': 'FINNIFTY',
+            'NIFTY': 'NIFTY_SPOT',
+            'NIFTYFUT': 'NIFTY_FUT',
+            'NIFTY_FUT': 'NIFTY_FUT',
+            'NIFTY SPOT': 'NIFTY_SPOT',
+            'BANKNIFTY': 'BANKNIFTY_SPOT',
+            'BANKNIFTYFUT': 'BANKNIFTY_FUT',
+            'BANKNIFTY_FUT': 'BANKNIFTY_FUT',
+            'BANKNIFTY SPOT': 'BANKNIFTY_SPOT',
+            'NIFTYFUTURES': 'NIFTY_FUT',
+            'BANKNIFTYFUTURES': 'BANKNIFTY_FUT',
         }
-        symbol = symbol_map.get(symbol_part.upper(), 'NIFTY')
+        symbol = symbol_map.get(symbol_part.upper(), 'NIFTY_FUT')
 
         if direction == 'BUY':
             direction = 'LONG'
