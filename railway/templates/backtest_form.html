@@ -14,9 +14,10 @@
                     <div class="mb-3">
                         <label class="form-label">Symbol</label>
                         <select class="form-select" name="symbol" required>
-                            {% for sym in symbols %}
-                            <option value="{{ sym }}" {% if sym == 'NIFTY' %}selected{% endif %}>{{ sym }}</option>
-                            {% endfor %}
+                            <option value="NIFTY_SPOT" selected>NIFTY SPOT</option>
+                            <option value="NIFTY_FUT">NIFTY FUTURES</option>
+                            <option value="BANKNIFTY_SPOT">BANKNIFTY SPOT</option>
+                            <option value="BANKNIFTY_FUT">BANKNIFTY FUTURES</option>
                         </select>
                     </div>
 
@@ -108,9 +109,9 @@
 {% block extra_js %}
 <script>
 const presets = {
-    nifty: { symbol: 'NIFTY', orb_duration: 15, target: 50, sl: 30, volume_confirm: 2.0 },
-    banknifty: { symbol: 'BANKNIFTY', orb_duration: 10, target: 100, sl: 50, volume_confirm: 2.0 },
-    conservative: { symbol: 'NIFTY', orb_duration: 20, target: 40, sl: 25, volume_confirm: 2.5 }
+    nifty: { symbol: 'NIFTY_FUT', orb_duration: 15, target: 50, sl: 30, volume_confirm: 2.0 },
+    banknifty: { symbol: 'BANKNIFTY_FUT', orb_duration: 10, target: 100, sl: 50, volume_confirm: 2.0 },
+    conservative: { symbol: 'NIFTY_SPOT', orb_duration: 20, target: 40, sl: 25, volume_confirm: 2.5 }
 };
 
 function applyPreset(name) {

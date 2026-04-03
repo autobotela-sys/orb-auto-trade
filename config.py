@@ -27,42 +27,58 @@ TRADE_LOG_DIR.mkdir(exist_ok=True)
 # TRADING PARAMETERS
 # ══════════════════════════════════════════════════════════════════════════
 
-# Symbol Configuration
+# Symbol Configuration (Spot and Futures)
 SYMBOL_CONFIG = {
-    "NIFTY": {
+    # NIFTY
+    "NIFTY_SPOT": {
+        "symbol": "NIFTY SPOT",
+        "exchange": "NSE",
+        "lot_size": 50,
+        "tick_size": 0.05,
+        "orb_duration": 15,
+        "target": 50,
+        "sl": 30,
+        "volume_confirm": 2.0,
+        "type": "SPOT",
+    },
+    "NIFTY_FUT": {
         "symbol": "NIFTY FUT",
         "exchange": "NSE",
         "lot_size": 50,
         "tick_size": 0.05,
-        "orb_duration": 15,  # minutes
+        "orb_duration": 15,
         "target": 50,
         "sl": 30,
         "volume_confirm": 2.0,
+        "type": "FUTURES",
     },
-    "BANKNIFTY": {
+    # BANKNIFTY
+    "BANKNIFTY_SPOT": {
+        "symbol": "BANKNIFTY SPOT",
+        "exchange": "NSE",
+        "lot_size": 15,
+        "tick_size": 0.05,
+        "orb_duration": 10,
+        "target": 100,
+        "sl": 50,
+        "volume_confirm": 2.0,
+        "type": "SPOT",
+    },
+    "BANKNIFTY_FUT": {
         "symbol": "BANKNIFTY FUT",
         "exchange": "NSE",
         "lot_size": 15,
         "tick_size": 0.05,
-        "orb_duration": 10,  # minutes
+        "orb_duration": 10,
         "target": 100,
         "sl": 50,
         "volume_confirm": 2.0,
-    },
-    "FINNIFTY": {
-        "symbol": "FINNIFTY FUT",
-        "exchange": "NSE",
-        "lot_size": 40,
-        "tick_size": 0.05,
-        "orb_duration": 15,
-        "target": 70,
-        "sl": 35,
-        "volume_confirm": 2.0,
+        "type": "FUTURES",
     },
 }
 
 # Default symbol
-DEFAULT_SYMBOL = "NIFTY"
+DEFAULT_SYMBOL = "NIFTY_FUT"
 
 # ══════════════════════════════════════════════════════════════════════════
 # RISK MANAGEMENT

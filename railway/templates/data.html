@@ -19,12 +19,11 @@
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label class="form-label">Symbol</label>
-                        <select class="form-select" name="symbol" id="symbolSelect" required>
-                            {% for sym in symbols %}
-                            <option value="{{ sym }}">{{ sym }}</option>
-                            {% endfor %}
-                            <option value="BANKNIFTY">BANKNIFTY</option>
-                            <option value="FINNIFTY">FINNIFTY</option>
+                        <select class="form-select" name="symbol" id="symbolSelect" required onchange="updateSymbolType()">
+                            <option value="NIFTY_SPOT">NIFTY SPOT</option>
+                            <option value="NIFTY_FUT">NIFTY FUTURES</option>
+                            <option value="BANKNIFTY_SPOT">BANKNIFTY SPOT</option>
+                            <option value="BANKNIFTY_FUT">BANKNIFTY FUTURES</option>
                         </select>
                     </div>
 
@@ -53,6 +52,9 @@
                 <p class="mb-2">Upload a CSV file with the following columns:</p>
                 <code>date, time, open, high, low, close, volume</code>
                 <p class="mt-3 mb-0 text-muted small">
+                    <strong>Spot vs Futures:</strong><br>
+                    • <strong>SPOT:</strong> Index spot data (e.g., NIFTY 50 index)<br>
+                    • <strong>FUTURES:</strong> Derivative futures data (trading instrument)<br><br>
                     Date format: YYYY-MM-DD<br>
                     Time format: HH:MM:SS (optional)<br>
                     Example: <code>2024-01-01, 09:15:00, 22450.0, 22480.0, 22430.0, 22460.0, 150000</code>
@@ -71,9 +73,10 @@
                     <label class="form-label">Select Symbol to Check</label>
                     <select class="form-select" id="checkSymbol" onchange="checkData()">
                         <option value="">-- Select --</option>
-                        <option value="NIFTY">NIFTY</option>
-                        <option value="BANKNIFTY">BANKNIFTY</option>
-                        <option value="FINNIFTY">FINNIFTY</option>
+                        <option value="NIFTY_SPOT">NIFTY SPOT</option>
+                        <option value="NIFTY_FUT">NIFTY FUTURES</option>
+                        <option value="BANKNIFTY_SPOT">BANKNIFTY SPOT</option>
+                        <option value="BANKNIFTY_FUT">BANKNIFTY FUTURES</option>
                     </select>
                 </div>
 
