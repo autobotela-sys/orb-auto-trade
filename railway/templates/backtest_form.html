@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}New Backtest - ORB Auto-Trade{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-play-circle"></i> Run New Backtest
+            </div>
+            <div class="card-body">
+                <form method="post" action="/backtest/run">
+                    <div class="mb-3">
+                        <label class="form-label">Symbol</label>
+                        <select class="form-select" name="symbol" required>
+                            {% for sym in symbols %}
+                            <option value="{{ sym }}" {% if sym == 'NIFTY' %}selected{% endif %}>{{ sym }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="start_date"
+                                   value="2023-01-01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="end_date"
+                                   value="{{ '2024-12-31' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">ORB Duration (min)</label>
+                            <input type="number" class="form-control" name="orb_duration"
+                                   value="15" min="5" max="60" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Target (points)</label>
+                            <input type="number" class="form-control" name="target"
+                                   value="50" min="10" max="200" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Stop Loss (points)</label>
+                            <input type="number" class="form-control" name="sl"
+                                   value="30" min="10" max="100" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Volume Confirmation (x)</label>
+                        <input type="number" class="form-control" name="volume_confirm"
+                               value="2.0" min="1.0" max="5.0" step="0.1" required>
+                        <small class="text-muted">Minimum volume ratio to enter trade</small>
+                    </div>
+
+                    <hr>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Make sure historical data is uploaded for the selected date range.
+                        <a href="/data" class="alert-link">Go to Data page</a> to upload.
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/backtests" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-play-fill"></i> Run Backtest
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Presets -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-bookmark"></i> Quick Presets
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-success w-100" onclick="applyPreset('nifty')">
+                            Nifty Optimized
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-warning w-100" onclick="applyPreset('banknifty')">
+                            BankNifty Optimized
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-info w-100" onclick="applyPreset('conservative')">
+                            Conservative
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const presets = {
+    nifty: { symbol: 'NIFTY', orb_duration: 15, target: 50, sl: 30, volume_confirm: 2.0 },
+    banknifty: { symbol: 'BANKNIFTY', orb_duration: 10, target: 100, sl: 50, volume_confirm: 2.0 },
+    conservative: { symbol: 'NIFTY', orb_duration: 20, target: 40, sl: 25, volume_confirm: 2.5 }
+};
+
+function applyPreset(name) {
+    const p = presets[name];
+    document.querySelector('[name="symbol"]').value = p.symbol;
+    document.querySelector('[name="orb_duration"]').value = p.orb_duration;
+    document.querySelector('[name="target"]').value = p.target;
+    document.querySelector('[name="sl"]').value = p.sl;
+    document.querySelector('[name="volume_confirm"]').value = p.volume_confirm;
+}
+</script>
+{% endblock %}

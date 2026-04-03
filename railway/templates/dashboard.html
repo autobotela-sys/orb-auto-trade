@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ORB Auto-Trade{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="bi bi-speedometer2"></i> Trading Dashboard</h2>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-info-custom">{{ total_trades }}</div>
+            <div class="stat-label">Total Trades</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value {% if total_pnl >= 0 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                {{ "%.0f"|format(total_pnl) }}
+            </div>
+            <div class="stat-label">Total P&L (Rs)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value {% if win_rate >= 50 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                {{ "%.1f"|format(win_rate) }}%
+            </div>
+            <div class="stat-label">Win Rate</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-info-custom">{{ total_backtests }}</div>
+            <div class="stat-label">Backtests Run</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history"></i> Recent Trades</span>
+                <a href="/trades" class="btn btn-sm btn-outline-light">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_trades %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Trade ID</th>
+                                <th>Symbol</th>
+                                <th>Direction</th>
+                                <th>Entry</th>
+                                <th>Exit</th>
+                                <th>P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in recent_trades %}
+                            <tr>
+                                <td><small>{{ trade.trade_id[:12] }}...</small></td>
+                                <td>{{ trade.symbol }}</td>
+                                <td>
+                                    <span class="badge badge-{{ trade.direction.lower() }}">
+                                        {{ trade.direction }}
+                                    </span>
+                                </td>
+                                <td>{{ "%.0f"|format(trade.entry_price) }}</td>
+                                <td>{{ "%.0f"|format(trade.exit_price) }}</td>
+                                <td class="{% if trade.net_pnl >= 0 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                    {{ "%.0f"|format(trade.net_pnl) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-2">No trades yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up"></i> Recent Backtests</span>
+                <a href="/backtests" class="btn btn-sm btn-outline-light">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_backtests %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Symbol</th>
+                                <th>Trades</th>
+                                <th>Win Rate</th>
+                                <th>P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bt in recent_backtests %}
+                            <tr>
+                                <td><small>{{ bt.name[:20] }}</small></td>
+                                <td>{{ bt.symbol }}</td>
+                                <td>{{ bt.total_trades }}</td>
+                                <td class="{% if bt.win_rate >= 50 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                    {{ "%.1f"|format(bt.win_rate) }}%
+                                </td>
+                                <td class="{% if bt.total_pnl >= 0 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                    {{ "%.0f"|format(bt.total_pnl) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="bi bi-clock-history fs-1"></i>
+                    <p class="mt-2">No backtests run yet</p>
+                    <a href="/backtest/new" class="btn btn-sm btn-primary">Run First Backtest</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="/backtest/new" class="btn btn-primary w-100">
+                            <i class="bi bi-play-circle"></i> Run Backtest
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-secondary w-100" onclick="uploadDataModal()">
+                            <i class="bi bi-upload"></i> Upload Data
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-info w-100" onclick="checkStatus()">
+                            <i class="bi bi-info-circle"></i> Check Status
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/data" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-database"></i> Manage Data
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background-color: var(--orb-card);">
+            <div class="modal-header">
+                <h5 class="modal-title">System Status</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="statusBody">
+                <div class="text-center">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function checkStatus() {
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    const body = document.getElementById('statusBody');
+
+    body.innerHTML = '<div class="text-center"><div class="loading"></div></div>';
+    modal.show();
+
+    fetch('/api/status')
+        .then(r => r.json())
+        .then(data => {
+            body.innerHTML = `
+                <table class="table">
+                    <tr><td>Status:</td><td><span class="status-dot online"></span> Online</td></tr>
+                    <tr><td>Auto Trading:</td><td>${data.config.auto_trading ? '<span class="text-success">ENABLED</span>' : '<span class="text-danger">DISABLED</span>'}</td></tr>
+                    <tr><td>Telegram Alerts:</td><td>${data.config.telegram_alerts ? '<span class="text-success">ENABLED</span>' : '<span class="text-muted">DISABLED</span>'}</td></tr>
+                    <tr><td>Open Positions:</td><td>${data.summary.open_positions || 0}</td></tr>
+                    <tr><td>Today's Trades:</td><td>${data.summary.trades || 0}</td></tr>
+                    <tr><td>Today's P&L:</td><td class="${data.summary.pnl >= 0 ? 'text-success' : 'text-danger'}">Rs. ${data.summary.pnl?.toFixed(0) || 0}</td></tr>
+                </table>
+            `;
+        })
+        .catch(err => {
+            body.innerHTML = '<p class="text-danger">Failed to fetch status</p>';
+        });
+}
+
+function uploadDataModal() {
+    alert('To upload historical data:\n\n1. Go to Data page\n2. Click "Upload Data"\n3. Select CSV file with columns: date, time, open, high, low, close, volume');
+}
+</script>
+{% endblock %}

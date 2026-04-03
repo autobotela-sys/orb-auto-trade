@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Historical Data - ORB Auto-Trade{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2><i class="bi bi-database"></i> Historical Data</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-upload"></i> Upload Historical Data
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Symbol</label>
+                        <select class="form-select" name="symbol" id="symbolSelect" required>
+                            {% for sym in symbols %}
+                            <option value="{{ sym }}">{{ sym }}</option>
+                            {% endfor %}
+                            <option value="BANKNIFTY">BANKNIFTY</option>
+                            <option value="FINNIFTY">FINNIFTY</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">CSV File</label>
+                        <input type="file" class="form-control" name="file" accept=".csv" required>
+                        <small class="text-muted">
+                            Required columns: date, time, open, high, low, close, volume
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload
+                    </button>
+                </form>
+
+                <div id="uploadResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Data Format
+            </div>
+            <div class="card-body">
+                <p class="mb-2">Upload a CSV file with the following columns:</p>
+                <code>date, time, open, high, low, close, volume</code>
+                <p class="mt-3 mb-0 text-muted small">
+                    Date format: YYYY-MM-DD<br>
+                    Time format: HH:MM:SS (optional)<br>
+                    Example: <code>2024-01-01, 09:15:00, 22450.0, 22480.0, 22430.0, 22460.0, 150000</code>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-table"></i> Available Data
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Symbol to Check</label>
+                    <select class="form-select" id="checkSymbol" onchange="checkData()">
+                        <option value="">-- Select --</option>
+                        <option value="NIFTY">NIFTY</option>
+                        <option value="BANKNIFTY">BANKNIFTY</option>
+                        <option value="FINNIFTY">FINNIFTY</option>
+                    </select>
+                </div>
+
+                <div id="dataInfo"></div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-download"></i> Free Historical Data Sources
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <a href="https://www.nseindia.com/products-content/equities-market-archives" target="_blank">
+                            <i class="bi bi-link-45deg"></i> NSE Bhavcopy
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="https://in.finance.yahoo.com" target="_blank">
+                            <i class="bi bi-link-45deg"></i> Yahoo Finance
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="https://historicaldata.indianintraday.in/" target="_blank">
+                            <i class="bi bi-link-45deg"></i> Indian Intraday Historical
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://www.tradingview.com/symbols/NSE-NIFTY/history/" target="_blank">
+                            <i class="bi bi-link-45deg"></i> TradingView (export)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const resultDiv = document.getElementById('uploadResult');
+
+    resultDiv.innerHTML = '<div class="text-center"><div class="loading"></div><p class="mt-2">Uploading...</p></div>';
+
+    fetch('/api/data/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+            document.getElementById('uploadForm').reset();
+        }
+    })
+    .catch(err => {
+        resultDiv.innerHTML = '<div class="alert alert-danger">Upload failed: ' + err + '</div>';
+    });
+});
+
+function checkData() {
+    const symbol = document.getElementById('checkSymbol').value;
+    const infoDiv = document.getElementById('dataInfo');
+
+    if (!symbol) {
+        infoDiv.innerHTML = '';
+        return;
+    }
+
+    infoDiv.innerHTML = '<div class="text-center"><div class="loading"></div></div>';
+
+    fetch('/api/data/historical?symbol=' + symbol + '&limit=1')
+    .then(r => r.json())
+    .then(data => {
+        if (data.count > 0) {
+            const first = data.data[0];
+            const last = data.data[data.data.length - 1];
+            infoDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>${symbol}:</strong> ${data.count.toLocaleString()} records<br>
+                    <small>From: ${first.date} | To: ${last.date}</small>
+                </div>
+            `;
+        } else {
+            infoDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    No data found for ${symbol}. Please upload.
+                </div>
+            `;
+        }
+    })
+    .catch(err => {
+        infoDiv.innerHTML = '<div class="alert alert-danger">Failed to fetch data info</div>';
+    });
+}
+</script>
+{% endblock %}

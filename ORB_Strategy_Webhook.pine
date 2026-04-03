@@ -1,0 +1,197 @@
+//@version=5
+strategy("ORB Auto-Trade Strategy", overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INPUTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ORB Settings
+orb_time = input.session("0915-0930", "ORB Formation Time", group="ORB Settings")
+orb_duration = input.int(15, "ORB Duration (minutes)", minval=5, maxval=60, group="ORB Settings")
+
+// Entry Settings
+wait_after_orb = input.int(0, "Wait after ORB (minutes)", minval=0, maxval=30, group="Entry Settings")
+volume_confirm = input.float(2.0, "Volume Confirmation (x)", minval=1.0, maxval=5.0, step=0.1, group="Entry Settings")
+
+// Target & SL
+target_pts = input.int(50, "Target (points)", minval=10, maxval=200, group="Exit Settings")
+sl_pts = input.int(30, "Stop Loss (points)", minval=10, maxval=100, group="Exit Settings")
+
+// Square Off Time
+square_off_time = input.session("1515-1530", "Square Off Time", group="Exit Settings")
+
+// Webhook Settings
+webhook_enabled = input.bool(true, "Enable Webhook Alerts", group="Webhook Settings")
+symbol_name = input.string("NIFTY", "Symbol Name", group="Webhook Settings")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VARIABLES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+var float orb_high = na
+var float orb_low = na
+var bool orb_formed = false
+var bool in_trade = false
+var float entry_price = na
+var float sl_price = na
+var float target_price = na
+var int trade_dir = 0  // 1 = long, -1 = short
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ORB CALCULATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Check if within ORB time
+in_orb_time = not na(time(timeframe.period, orb_time))
+
+// ORB Formation
+if in_orb_time and not orb_formed
+    orb_high := high
+    orb_low := low
+
+if in_orb_time
+    orb_high := math.max(orb_high, high)
+    orb_low := math.min(orb_low, low)
+
+// ORB completed
+if not in_orb_time and not orb_formed
+    orb_formed := true
+    orb_wait_end := time + wait_after_orb * 60000
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VOLUME CALCULATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+ma_volume = ta.sma(volume, 20)
+vol_ratio = volume / ma_volume
+
+// Plot for webhook
+plot_vol_ratio = vol_ratio
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENTRY LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Long Entry
+long_condition = orb_formed and close > orb_high and vol_ratio >= volume_confirm and not in_trade
+
+// Short Entry
+short_condition = orb_formed and close < orb_low and vol_ratio >= volume_confirm and not in_trade
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXECUTE TRADES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+if long_condition and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+    entry_price := close
+    sl_price := orb_low
+    target_price := close + target_pts
+    trade_dir := 1
+    in_trade := true
+
+if short_condition and strategy.position_size == 0
+    strategy.entry("Short", strategy.short)
+    entry_price := close
+    sl_price := orb_high
+    target_price := close - target_pts
+    trade_dir := -1
+    in_trade := true
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXIT LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Square off at end of day
+in_square_off = not na(time(timeframe.period, square_off_time))
+
+if in_square_off and strategy.position_size != 0
+    strategy.close_all()
+    in_trade := false
+
+// SL Hit
+if strategy.position_size > 0 and close <= sl_price
+    strategy.close("Long")
+    in_trade := false
+
+if strategy.position_size < 0 and close >= sl_price
+    strategy.close("Short")
+    in_trade := false
+
+// Target Hit
+if strategy.position_size > 0 and close >= target_price
+    strategy.close("Long")
+    in_trade := false
+
+if strategy.position_size < 0 and close <= target_price
+    strategy.close("Short")
+    in_trade := false
+
+// Reset at new day (first bar of day)
+if ta.change(time("D")) != 0
+    orb_high := na
+    orb_low := na
+    orb_formed := false
+    in_trade := false
+    entry_price := na
+    sl_price := na
+    target_price := na
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEBHOOK ALERT MESSAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Format: symbol, time, close, orb_high, orb_low, volume_ratio, direction
+webhook_msg = symbol_name + "," + str.tostring(time, "HHmm") + "," + str.tostring(close, "#.##") + "," + str.tostring(orb_high, "#.##") + "," + str.tostring(orb_low, "#.##") + "," + str.tostring(vol_ratio, "#.##") + "," + (trade_dir == 1 ? "LONG" : trade_dir == -1 ? "SHORT" : "NONE")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PLOTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ORB Levels
+plot(orb_high, "ORB High", color=color.green, linewidth=2, style=plot.style_linebr)
+plot(orb_low, "ORB Low", color=color.red, linewidth=2, style=plot.style_linebr)
+
+// Entry signals
+plotshape(long_condition, "Long Signal", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(short_condition, "Short Signal", shape.triangledown, location.abovebar, color.red, size=size.small)
+
+// Plot for webhook values (these are used in alert message)
+plot(plot_orb_high, "Plot ORB High", display=display.none)
+plot(plot_orb_low, "Plot ORB Low", display=display.none)
+plot(plot_volume, "Plot Volume", display=display.none)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Entry Alert
+alertcondition(long_condition or short_condition, "ORB Entry Signal", webhook_msg)
+
+// Target Hit Alert
+alertcondition(strategy.position_size > 0 and close >= target_price or strategy.position_size < 0 and close <= target_price, "Target Hit", "Target Hit at " + str.tostring(close))
+
+// SL Hit Alert
+alertcondition(strategy.position_size > 0 and close <= sl_price or strategy.position_size < 0 and close >= sl_price, "SL Hit", "SL Hit at " + str.tostring(close))
+
+// Square Off Alert
+alertcondition(in_square_off and strategy.position_size != 0, "Square Off", "Square Off at 3:15 PM")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TABLE DISPLAY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+var table info_table = table.new(position.top_right, 2, 8, bgcolor=color.new(color.black, 85), border_width=1)
+
+if barstate.islast
+    // Headers
+    table.cell(info_table, 0, 0, "ORB High", text_color=color.green, text_size=size.small)
+    table.cell(info_table, 1, 0, str.tostring(orb_high, "#.##"), text_color=color.green, text_size=size.small)
+    table.cell(info_table, 0, 1, "ORB Low", text_color=color.red, text_size=size.small)
+    table.cell(info_table, 1, 1, str.tostring(orb_low, "#.##"), text_color=color.red, text_size=size.small)
+    table.cell(info_table, 0, 2, "Volume Ratio", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 2, str.tostring(vol_ratio, "#.##") + "x", text_color=vol_ratio >= volume_confirm ? color.green : color.red, text_size=size.small)
+    table.cell(info_table, 0, 3, "Status", text_color=color.white, text_size=size.small)
+    status_text = orb_formed ? (in_trade ? "IN TRADE" : "READY") : "FORMING"
+    status_color = orb_formed ? (in_trade ? color.yellow : color.green) : color.blue
+    table.cell(info_table, 1, 3, status_text, text_color=status_color, text_size=size.small)

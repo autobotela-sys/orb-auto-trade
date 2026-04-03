@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ORB Auto-Trade System{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --orb-green: #00C853;
+            --orb-red: #FF1744;
+            --orb-blue: #2979FF;
+            --orb-dark: #1a1a2e;
+            --orb-card: #16213e;
+        }
+
+        body {
+            background-color: var(--orb-dark);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--orb-card) !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--orb-green) !important;
+        }
+
+        .nav-link {
+            color: #b0b0b0 !important;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--orb-green) !important;
+        }
+
+        .card {
+            background-color: var(--orb-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+        }
+
+        .card-header {
+            background-color: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .text-success-custom { color: var(--orb-green) !important; }
+        .text-danger-custom { color: var(--orb-red) !important; }
+        .text-info-custom { color: var(--orb-blue) !important; }
+
+        .bg-success-custom { background-color: var(--orb-green) !important; }
+        .bg-danger-custom { background-color: var(--orb-red) !important; }
+
+        .table {
+            color: #e0e0e0;
+        }
+
+        .table thead th {
+            background-color: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .table tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(255,255,255,0.02);
+        }
+
+        .btn-primary {
+            background-color: var(--orb-green);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #00a844;
+        }
+
+        .badge-long {
+            background-color: var(--orb-green);
+        }
+
+        .badge-short {
+            background-color: var(--orb-red);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            padding: 2rem 0;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--orb-green);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-dot.online { background-color: var(--orb-green); }
+        .status-dot.offline { background-color: var(--orb-red); }
+        .status-dot.warning { background-color: #ffc107; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-graph-up-arrow"></i> ORB Auto-Trade
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="/">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'trades' %}active{% endif %}" href="/trades">
+                            <i class="bi bi-list-check"></i> Trades
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'backtests' %}active{% endif %}" href="/backtests">
+                            <i class="bi bi-clock-history"></i> Backtests
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'data_page' %}active{% endif %}" href="/data">
+                            <i class="bi bi-database"></i> Data
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'signals' %}active{% endif %}" href="/signals">
+                            <i class="bi bi-broadcast"></i> Signals
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">ORB Auto-Trade System | Railway Deployment</p>
+            <small class="text-muted">
+                Auto Trading: <span class="text-{% if enable_auto_trading %}success{% else %}danger{% endif %}">
+                    {% if enable_auto_trading %}ENABLED{% else %}DISABLED{% endif %}
+                </span>
+            </small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.0/dist/chart.umd.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

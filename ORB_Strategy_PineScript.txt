@@ -1,0 +1,205 @@
+//@version=5
+strategy("ORB Breakout Strategy", overlay=true)
+═════════════════════════════════════════════════════════════════════════════════════
+║
+║              OPENING RANGE BREAKOUT STRATEGY - TRADINGVIEW PINE SCRIPT          ║
+║                                                                               ║
+║  • ORB: 9:15-9:30 AM (15 minutes)                                         ║
+║  • Volume Confirmation: 2.0× average                                              ║
+║  • Entry: Immediate on ORB break                                                  ║
+║  • Target: 50 points                                                          ║
+║  • SL: Other side of ORB (~30 points)                                            ║
+║                                                                               ║
+║  USAGE:                                                                     ║
+║  1. Add this script to your chart                                              ║
+║  2.15 AM will show ORB levels for the day                                     ║
+║   3. Watch for breakouts with volume spike (green diamonds)                       ║
+║  4. Enter on break of ORB with volume > 2x                                  ║
+║   5. Exit at target or 3:15 PM                                                     ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+// ────────────────────────────────────────────────────────────────────────────────────────────
+// INPUTS
+// ────────────────────────────────────────────────────────────────────────────────────────────
+
+// ORB Settings
+orb_duration = input.int("ORB Duration (minutes)", 15, minval=5, maxval=60, group="ORB Settings")
+volume_confirm = input.float("Volume Confirmation (× MA)", 2.0, minval=1.0, maxval=3.0, step=0.1, group="ORB Settings")
+entry_wait = input.int("Wait after ORB (0=immediate)", 0, minval=0, maxval=30, group="ORB Settings")
+
+// Target & SL
+target_points = input.int("Target Points", 50, minval=20, maxval=100, group="Trade Management")
+sl_points = input.int("Stop Loss Points", 30, minval=15, maxval=50, group="Trade Management")
+
+// Visual Settings
+show_orb_levels = input.bool("Show ORB Levels", true, group="Visual")
+show_breakout_signals = input.bool("Show Breakout Signals", true, group="Visual")
+show_entry_exit = input.bool("Show Entry/Exit Levels", true, group="Visual")
+
+// Colors
+color_orb_high = color.new(color.green, "up", "Bullish")
+color_orb_low = color.red
+color_orb_high_bg = color.new(color.green, "up", "transparent", 80)
+color_orb_low_bg = color.new(color.red, "down", "transparent", 80)
+color_long_entry = color.new(color.lime, "up", "Bullish", size=size.large)
+color_short_entry = color.new(color.fuchsia, "down", "Bearish", size=size.large)
+color_target = color.new(color.blue)
+color_sl = color.new(color.red)
+
+// ════════════════════════════════════════════════════════════════════════
+// CALCULATIONS
+// ════════════════════════════════════════════════════════════════════════
+
+// Time calculations
+current_bar_time = time(timeframe.period, "09:15:00")
+orb_end_time = time(timeframe.period, string.format("{0,number:02}:{1,number:02} 15:00", orb_duration))
+
+// Is it ORB period?
+is_orb_period = time >= current_bar_time and time <= orb_end_time
+
+// ORB High and Low (only during ORB period)
+var float orb_high = na
+var float orb_low = na
+
+if is_orb_period
+    orb_high := ta.highest(high, orb_duration)[1]
+    orb_low := ta.lowest(low, orb_duration)[1]
+
+// ══════════════════════════════════════════════════════════════════════
+// VOLUME CALCULATION
+// ══════════════════════════════════════════════════════════════════════
+
+volume_ma = ta.sma(volume, 20)
+volume_ratio = volume / volume_ma
+
+// ════════════════════════════════════════════════════════════════════
+// DETECT BREAKOUTS
+// ══════════════════════════════════════════════════════════════════
+
+var bool long_breakout = false
+var bool short_breakout = false
+var bool long_entry_triggered = false
+var bool short_entry_triggered = false
+var float long_entry_price = na
+var float short_entry_price = na
+var int long_entry_bar = na
+var int short_entry_bar = na
+
+// Reset for new day
+if dayofmonth != dayofmonth[1]
+    long_breakout := false
+    short_breakout := false
+    long_entry_triggered := false
+    short_entry_triggered := false
+    long_entry_price := na
+    short_entry_price := na
+
+// Detect breakouts (after ORB period)
+if not is_orb_period and not long_entry_triggered and not short_entry_triggered
+    // Long breakout
+    if ta.hClose[1] > orb_high[1]  // Previous bar broke ORB high
+        long_breakout := true
+
+    // Short breakout
+    if ta.low[1] < orb_low[1]   // Previous bar broke ORB low
+        short_breakout := true
+
+// Entry triggers (with volume confirmation)
+if long_breakout and not long_entry_triggered
+    if volume_ratio > volume_confirm
+        long_entry_triggered := true
+        long_entry_price := orb_high + 0.5
+        long_entry_bar := bar_index
+        long_breakout := false  // Reset for next trade
+
+if short_breakout and not short_entry_triggered
+    if volume_ratio > volume_confirm
+        short_entry_triggered := true
+        short_entry_price := orb_low - 0.5
+        short_entry_bar := bar_index
+        short_breakout := false
+
+// ════════════════════════════════════════════════════════════════════
+// TARGET & STOP LOSS CALCULATIONS
+// ════════════════════════════════════════════════════════════════
+
+var float target_long = na
+var float sl_long = na
+var float target_short = na
+var float sl_short = na
+
+if long_entry_triggered
+    target_long := long_entry_price + target_points
+    sl_long := orb_low  // SL at other side of ORB
+    target_short := na
+    sl_short := na
+
+if short_entry_triggered
+    target_short := short_entry_price - target_points
+    sl_short := orb_high
+    target_long := na
+    sl_long := na
+
+// ══════════════════════════════════════════════════════════════════
+// EXIT CONDITIONS
+// ══════════════════════════════════════════════════════════════════
+
+// Exit at 3:15 PM
+exit_at_3pm = time >= time_close and ta.hour == 15 and ta.minute >= 15
+
+// Exit if target or SL hit
+long_sl_hit = long_entry_triggered and low <= sl_long
+short_sl_hit = short_entry_triggered and high >= sl_short
+long_target_hit = long_entry_triggered and high >= target_long
+short_target_hit = short_entry_triggered and low <= target_short
+
+// ═════════════════════════════════════════════════════════════════════
+// PLOTTING
+// ════════════════════════════════════════════════════════════════════════
+
+// ORB Levels (only during ORB period)
+plot(is_orb_period ? orb_high : na, "ORB High", color_orb_high, 2, style=plot.style_linebr)
+plot(is_orb_period ? orb_low : na, "ORB Low", color_orb_low, 2, style=plot.style_linebr)
+fill(orb_high_bg, orb_low_bg)
+
+// Previous ORB levels (dashed)
+plot(is_orb_period ? orb_high : na, "", color_orb_high_bg, 1, style=plot.style_circles, size=size.tiny)
+plot(is_orb_period ? orb_low : na, "", color_orb_low_bg, 1, style=plot.style_circles, size=size.tiny)
+
+// Target Levels
+plot(long_entry_triggered ? target_long : na, "Target Long", color_target, 2, style=plot.style_circles, size=size.tiny)
+plot(short_entry_triggered ? target_short : na, "Target Short", color_target, 2, style=plot.style_circles, size=size.tiny)
+
+// SL Levels
+plot(long_entry_triggered ? sl_long : na, "SL Long", color_sl, 2, style=plot.style_circles, size=size.tiny)
+plot(short_entry_triggered ? sl_short : na, "SL Short", color_sl, 2, style=plot.style_circles, size=size.tiny)
+
+// Entry Points (show only on entry)
+plot(long_entry_triggered and show_entry_exit ? long_entry_price : na, "Long Entry", color_long_entry, size=size.large)
+plot(short_entry_triggered and show_entry_exit ? short_entry_price : na, "Short Entry", color_short_entry, size=size.large)
+
+// Breakout Signals (show when breakout detected)
+plot(long_breakout and show_breakout_signals ? orb_high : na, "Long Breakout", color_orb_high, 2, style=plot.style_circles, size=size.small)
+plot(short_breakout and show_breakout_signals ? orb_low : na, "Short Breakout", color_orb_low, 2, style=plot_circles, size=size.small)
+
+// ════════════════════════════════════════════════════════════════════
+// ALERTS
+// ══════════════════════════════════════════════════════════════════════
+
+// ORB Breakout Alerts
+alertcondition(long_breakout and not long_entry_triggered and not long_entry_triggered[1] and not long_entry_triggered[2] and long_breakout[1], title="ORB: Long Breakout Detected", message="ORB: Long breakout detected on {{ticker}} at {{time}}")
+
+alertcondition(long_entry_triggered, "ORB Long Entry", message="ORB: LONG entry on {{ticker}} at {{time}}")
+
+alertcondition(short_breakout and not short_entry_triggered and not short_entry_triggered[1] and not short_entry_triggered[2] and short_breakout[1], title="ORB: Short Breakout Detected", message="ORB: Short breakout detected on {{ticker}} at {{time}}")
+
+alertcondition(long_entry_triggered and long_target_hit, "ORB: Long Target Hit", message="ORB: LONG target hit on {{ticker}} at {{time}}")
+alertcondition(short_entry_triggered and short_target_hit, "ORB: Short Target Hit", message="ORB: SHORT target hit on {{ticker}} at {{time}}")
+alertcondition(long_entry_triggered and long_sl_hit, "ORB: Long SL Hit", message="ORB: LONG SL hit on {{ticker}} at {{time}}")
+alertcondition(short_entry_triggered and short_sl_hit, "ORB: Short SL Hit", message="ORB: SHORT SL hit on {{ticker}} at {{time}}")
+alertcondition(exit_at_3pm and (long_entry_triggered or short_entry_triggered), "ORB: 3:15 PM Exit", message="ORB: 3:15 PM exit on {{ticker}}")
+
+// ══════════════════════════════════════════════════════════════════════
+// END OF SCRIPT
+// ════════════════════════════════════════════════════════════════════

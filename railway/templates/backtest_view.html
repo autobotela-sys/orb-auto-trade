@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Backtest Result - ORB Auto-Trade{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2><i class="bi bi-graph-up"></i> {{ bt.name }}</h2>
+        <a href="/backtests" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value {% if bt.total_pnl >= 0 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                {{ "%.0f"|format(bt.total_pnl) }}
+            </div>
+            <div class="stat-label">Total P&L (Rs)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value {% if bt.win_rate >= 50 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                {{ "%.1f"|format(bt.win_rate) }}%
+            </div>
+            <div class="stat-label">Win Rate</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-info-custom">{{ bt.total_trades }}</div>
+            <div class="stat-label">Total Trades</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="stat-value text-danger-custom">{{ "%.2f"|format(bt.max_drawdown_pct) }}%</div>
+            <div class="stat-label">Max Drawdown</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">Performance Metrics</div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <td>Winning Trades</td>
+                            <td class="text-success-custom">{{ bt.winning_trades }}</td>
+                        </tr>
+                        <tr>
+                            <td>Losing Trades</td>
+                            <td class="text-danger-custom">{{ bt.losing_trades }}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Win</td>
+                            <td class="text-success-custom">Rs. {{ "%.0f"|format(bt.avg_win) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Loss</td>
+                            <td class="text-danger-custom">Rs. {{ "%.0f"|format(bt.avg_loss) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Profit Factor</td>
+                            <td>{{ "%.2f"|format(bt.profit_factor) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Points</td>
+                            <td class="{% if bt.total_points >= 0 %}text-success-custom{% else %}text-danger-custom{% endif %}">
+                                {{ "%.0f"|format(bt.total_points) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Strategy Parameters</div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <td>Symbol</td>
+                            <td>{{ bt.symbol }}</td>
+                        </tr>
+                        <tr>
+                            <td>Date Range</td>
+                            <td>{{ bt.start_date }} to {{ bt.end_date }}</td>
+                        </tr>
+                        <tr>
+                            <td>ORB Duration</td>
+                            <td>{{ bt.orb_duration }} minutes</td>
+                        </tr>
+                        <tr>
+                            <td>Target</td>
+                            <td>{{ bt.target }} points</td>
+                        </tr>
+                        <tr>
+                            <td>Stop Loss</td>
+                            <td>{{ bt.sl }} points</td>
+                        </tr>
+                        <tr>
+                            <td>Volume Confirmation</td>
+                            <td>{{ bt.volume_confirm }}x</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Analysis</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Win/Loss Ratio</h6>
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-success-custom" style="width: {{ bt.win_rate }}%">
+                            {{ "%.1f"|format(bt.win_rate) }}%
+                        </div>
+                        <div class="progress-bar bg-danger-custom" style="width: {{ 100 - bt.win_rate }}%">
+                            {{ "%.1f"|format(100 - bt.win_rate) }}%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert {% if bt.profit_factor >= 1.5 %}alert-success{% elif bt.profit_factor >= 1 %}alert-warning{% else %}alert-danger{% endif %}">
+                    <strong>Profit Factor:</strong> {{ "%.2f"|format(bt.profit_factor) }}
+                    <br>
+                    <small>
+                        {% if bt.profit_factor >= 1.5 %}
+                        Excellent strategy!
+                        {% elif bt.profit_factor >= 1 %}
+                        Strategy is profitable.
+                        {% else %}
+                        Strategy needs optimization.
+                        {% endif %}
+                    </small>
+                </div>
+
+                <div class="alert {% if bt.win_rate >= 55 %}alert-success{% elif bt.win_rate >= 45 %}alert-warning{% else %}alert-danger{% endif %}">
+                    <strong>Win Rate:</strong> {{ "%.1f"|format(bt.win_rate) }}%
+                    <br>
+                    <small>
+                        {% if bt.win_rate >= 55 %}
+                        Good win rate!
+                        {% elif bt.win_rate >= 45 %}
+                        Moderate win rate.
+                        {% else %}
+                        Low win rate, consider adjustments.
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Quick Actions</div>
+            <div class="card-body">
+                <button class="btn btn-outline-primary w-100 mb-2" onclick="rerunBacktest()">
+                    <i class="bi bi-arrow-clockwise"></i> Rerun with Same Params
+                </button>
+                <button class="btn btn-outline-secondary w-100" onclick="downloadReport()">
+                    <i class="bi bi-download"></i> Download Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function rerunBacktest() {
+    window.location.href = '/backtest/new?symbol={{ bt.symbol }}&orb_duration={{ bt.orb_duration }}&target={{ bt.target }}&sl={{ bt.sl }}';
+}
+
+function downloadReport() {
+    const data = {
+        name: '{{ bt.name }}',
+        symbol: '{{ bt.symbol }}',
+        date_range: '{{ bt.start_date }} to {{ bt.end_date }}',
+        total_trades: {{ bt.total_trades }},
+        winning_trades: {{ bt.winning_trades }},
+        losing_trades: {{ bt.losing_trades }},
+        win_rate: {{ bt.win_rate }},
+        total_pnl: {{ bt.total_pnl }},
+        profit_factor: {{ bt.profit_factor }},
+        max_drawdown_pct: {{ bt.max_drawdown_pct }}
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'backtest_{{ bt.id }}.json';
+    a.click();
+}
+</script>
+{% endblock %}
