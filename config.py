@@ -1,6 +1,7 @@
 """
 ╔════════════════════════════════════════════════════════════════════════════════╗
-║                         ORB STRATEGY CONFIGURATION                             ║
+║                    QUANDBACK PRO - STRATEGY CONFIGURATION                      ║
+║                   Generic Backtesting & Strategy Analysis System               ║
 ╚════════════════════════════════════════════════════════════════════════════════╝
 """
 

@@ -1,8 +1,8 @@
 """
 ╔════════════════════════════════════════════════════════════════════════════════╗
-║                    ORB AUTO-TRADE SYSTEM - MAIN APP                            ║
-║                                                                               ║
-║  Railway Deployment - Flask App with Database & Web UI                        ║
+║                    QUANDBACK PRO - MAIN APPLICATION                            ║
+║                   Generic Backtesting & Strategy Analysis System               ║
+║                   Railway Deployment - Flask App with Database                 ║
 ╚════════════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -322,7 +322,7 @@ def backtest_run():
 
     # Save to database
     backtest = BacktestResult(
-        name=f"{symbol} ORB Backtest",
+        name=f"{symbol} Strategy Backtest",
         symbol=symbol,
         start_date=datetime.strptime(start_date, '%Y-%m-%d').date(),
         end_date=datetime.strptime(end_date, '%Y-%m-%d').date(),
@@ -615,7 +615,7 @@ if __name__ == '__main__':
     init_db()
 
     port = int(os.getenv('PORT', 8080))
-    logger.info(f"🚀 Starting ORB Auto-Trade System on port {port}")
-    logger.info(f"   Auto Trading: {'ENABLED' if ENABLE_AUTO_TRADING else 'DISABLED'}")
+    logger.info(f"🚀 Starting QuantBack Pro on port {port}")
+    logger.info(f"   Live Mode: {'ENABLED' if ENABLE_AUTO_TRADING else 'DISABLED'}")
 
     app.run(host='0.0.0.0', port=port, debug=False)

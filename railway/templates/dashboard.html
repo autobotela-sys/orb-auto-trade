@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - ORB Auto-Trade{% endblock %}
+{% block title %}Dashboard - QuantBack Pro{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h2><i class="bi bi-speedometer2"></i> Trading Dashboard</h2>
+        <h2><i class="bi bi-speedometer2"></i> Strategy Dashboard</h2>
     </div>
 </div>
 
@@ -46,7 +46,7 @@
     <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-clock-history"></i> Recent Trades</span>
+                <span><i class="bi bi-clock-history"></i> Recent Signals</span>
                 <a href="/trades" class="btn btn-sm btn-outline-light">View All</a>
             </div>
             <div class="card-body p-0">
@@ -181,7 +181,7 @@
     <div class="modal-dialog">
         <div class="modal-content" style="background-color: var(--orb-card);">
             <div class="modal-header">
-                <h5 class="modal-title">System Status</h5>
+                <h5 class="modal-title">Strategy Status</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="statusBody">
@@ -209,11 +209,11 @@ function checkStatus() {
             body.innerHTML = `
                 <table class="table">
                     <tr><td>Status:</td><td><span class="status-dot online"></span> Online</td></tr>
-                    <tr><td>Auto Trading:</td><td>${data.config.auto_trading ? '<span class="text-success">ENABLED</span>' : '<span class="text-danger">DISABLED</span>'}</td></tr>
-                    <tr><td>Telegram Alerts:</td><td>${data.config.telegram_alerts ? '<span class="text-success">ENABLED</span>' : '<span class="text-muted">DISABLED</span>'}</td></tr>
-                    <tr><td>Open Positions:</td><td>${data.summary.open_positions || 0}</td></tr>
-                    <tr><td>Today's Trades:</td><td>${data.summary.trades || 0}</td></tr>
-                    <tr><td>Today's P&L:</td><td class="${data.summary.pnl >= 0 ? 'text-success' : 'text-danger'}">Rs. ${data.summary.pnl?.toFixed(0) || 0}</td></tr>
+                    <tr><td>Live Mode:</td><td>${data.config.auto_trading ? '<span class="text-success">ENABLED</span>' : '<span class="text-danger">DISABLED</span>'}</td></tr>
+                    <tr><td>Alerts:</td><td>${data.config.telegram_alerts ? '<span class="text-success">ENABLED</span>' : '<span class="text-muted">DISABLED</span>'}</td></tr>
+                    <tr><td>Active Backtests:</td><td>${data.summary.open_positions || 0}</td></tr>
+                    <tr><td>Total Signals:</td><td>${data.summary.trades || 0}</td></tr>
+                    <tr><td>Total P&L:</td><td class="${data.summary.pnl >= 0 ? 'text-success' : 'text-danger'}">Rs. ${data.summary.pnl?.toFixed(0) || 0}</td></tr>
                 </table>
             `;
         })
