@@ -1,6 +1,0 @@
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "railway/Dockerfile"
-
-[deploy]
-startCommand = "python app.py"
