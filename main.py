@@ -411,6 +411,40 @@ def init_db_endpoint():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@app.route('/test_datetime')
+def test_datetime():
+    """Test datetime parsing"""
+    import pandas as pd
+    from io import StringIO
+
+    csv_data = """DateTime,Open,High,Low,Close,Volume
+2016-01-01 09:16:00,7942.0,7950.0,7935.0,7937.15,117825
+2016-01-01 09:17:00,7938.0,7938.1,7932.55,7933.25,43200"""
+
+    df = pd.read_csv(StringIO(csv_data))
+    df.columns = df.columns.str.strip().str.lower()
+
+    # Find datetime column
+    datetime_col = None
+    for col in df.columns:
+        if col in ['datetime', 'timestamp']:
+            datetime_col = col
+            break
+
+    if datetime_col:
+        df['_datetime'] = pd.to_datetime(df[datetime_col], errors='coerce')
+        df['date'] = df['_datetime'].dt.date
+        df['time'] = df['_datetime'].dt.strftime('%H:%M:%S')
+
+    return jsonify({
+        'datetime_col': datetime_col,
+        'columns': list(df.columns),
+        'data': [
+            {'date': str(d), 'time': t} for d, t in zip(df['date'].tolist(), df['time'].tolist())
+        ]
+    }), 200
+
+
 @app.route('/api/orb_signal', methods=['POST'])
 def receive_signal():
     """Receive ORB signal from TradingView"""
