@@ -401,6 +401,16 @@ def health():
     }), 200
 
 
+@app.route('/init_db')
+def init_db_endpoint():
+    """Initialize database tables endpoint"""
+    try:
+        db.create_all()
+        return jsonify({'status': 'success', 'message': 'Database tables created'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/api/orb_signal', methods=['POST'])
 def receive_signal():
     """Receive ORB signal from TradingView"""
