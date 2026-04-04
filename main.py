@@ -592,7 +592,8 @@ def upload_historical_data():
         for _, row in df.iterrows():
             # Check if exists - match on symbol, date, time, AND OHLC values
             # This prevents false duplicates when time is None
-            row_time = row['time'] if pd.notna(row['time']) else None
+            time_val = row['time']
+            row_time = time_val if pd.notna(time_val) and time_val is not None else None
 
             existing = HistoricalData.query.filter_by(
                 symbol=symbol,
