@@ -561,8 +561,8 @@ def upload_historical_data():
             # Parse datetime column
             df['_datetime'] = pd.to_datetime(df[datetime_col], errors='coerce')
             df['date'] = df['_datetime'].dt.date
-            # Convert time to string for SQLite compatibility
-            df['time'] = df['_datetime'].dt.strftime('%H:%M:%S')
+            # Keep as datetime.time objects for SQLAlchemy
+            df['time'] = df['_datetime'].dt.time
             df = df.drop(columns=['_datetime', datetime_col])
         elif 'date' not in df.columns:
             # Create dummy dates if no date column
