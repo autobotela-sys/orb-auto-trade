@@ -494,12 +494,18 @@ def upload_historical_data():
         df = pd.read_csv(file)
 
         # Normalize column names to lowercase
+        original_columns = df.columns.tolist()
         df.columns = df.columns.str.strip().str.lower()
 
-        # Column name mapping for common variations
+        # Store datetime column before renaming
+        datetime_col = None
+        for col in df.columns:
+            if col in ['datetime', 'timestamp']:
+                datetime_col = col
+                break
+
+        # Column name mapping for common variations (but don't rename datetime yet)
         col_mapping = {
-            'datetime': 'date',
-            'timestamp': 'date',
             'oi': 'oi',
             'openinterest': 'oi'
         }
@@ -516,25 +522,21 @@ def upload_historical_data():
                 'hint': 'CSV must have: open, high, low, close (and optionally: date, time, volume)'
             }), 400
 
-        # Handle date column - if not present, use index
-        if 'date' not in df.columns:
-            if 'datetime' in df.columns:
-                df['date'] = pd.to_datetime(df['datetime'])
-            elif 'timestamp' in df.columns:
-                df['date'] = pd.to_datetime(df['timestamp'])
-            else:
-                # Create dummy dates if no date column
-                df['date'] = pd.date_range(start='2020-01-01', periods=len(df), freq='D')
-
-        # Handle time column
-        if 'time' not in df.columns:
-            # Extract time from datetime if available, otherwise set to None
-            if 'datetime' in df.columns:
-                df['time'] = pd.to_datetime(df['datetime']).dt.time
-            else:
-                df['time'] = None
+        # Handle datetime/date column
+        if datetime_col:
+            # Parse datetime column
+            df['_datetime'] = pd.to_datetime(df[datetime_col], errors='coerce')
+            df['date'] = df['_datetime'].dt.date
+            df['time'] = df['_datetime'].dt.time
+            df = df.drop(columns=['_datetime', datetime_col])
+        elif 'date' not in df.columns:
+            # Create dummy dates if no date column
+            df['date'] = pd.date_range(start='2020-01-01', periods=len(df), freq='D')
+            df['time'] = None
         else:
-            df['time'] = pd.to_datetime(df['time'], errors='coerce').dt.time
+            # date column exists but no datetime
+            df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
+            df['time'] = None
 
         # Handle volume column - if not present, set to 0
         if 'volume' not in df.columns:
