@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12 d-flex justify-content-between align-items-center">
-        <h2><i class="bi bi-graph-up"></i> {{ bt.name }}</h2>
+        <h2><i class="bi bi-graph-up"></i> {{ backtest.name }}</h2>
         <a href="/backtests" class="btn btn-outline-secondary">Back to List</a>
     </div>
 </div>
@@ -29,7 +29,7 @@
     </div>
     <div class="col-md-3">
         <div class="card stat-card">
-            <div class="stat-value text-info-custom">{{ bt.total_trades }}</div>
+            <div class="stat-value text-info-custom">{{ backtest.total_trades }}</div>
             <div class="stat-label">Total Trades</div>
         </div>
     </div>
@@ -50,11 +50,11 @@
                     <tbody>
                         <tr>
                             <td>Winning Trades</td>
-                            <td class="text-success-custom">{{ bt.winning_trades }}</td>
+                            <td class="text-success-custom">{{ backtest.winning_trades }}</td>
                         </tr>
                         <tr>
                             <td>Losing Trades</td>
-                            <td class="text-danger-custom">{{ bt.losing_trades }}</td>
+                            <td class="text-danger-custom">{{ backtest.losing_trades }}</td>
                         </tr>
                         <tr>
                             <td>Average Win</td>
@@ -86,27 +86,27 @@
                     <tbody>
                         <tr>
                             <td>Symbol</td>
-                            <td>{{ bt.symbol }}</td>
+                            <td>{{ backtest.symbol }}</td>
                         </tr>
                         <tr>
                             <td>Date Range</td>
-                            <td>{{ bt.start_date }} to {{ bt.end_date }}</td>
+                            <td>{{ backtest.start_date }} to {{ backtest.end_date }}</td>
                         </tr>
                         <tr>
                             <td>ORB Duration</td>
-                            <td>{{ bt.orb_duration }} minutes</td>
+                            <td>{{ backtest.orb_duration }} minutes</td>
                         </tr>
                         <tr>
                             <td>Target</td>
-                            <td>{{ bt.target }} points</td>
+                            <td>{{ backtest.target }} points</td>
                         </tr>
                         <tr>
                             <td>Stop Loss</td>
-                            <td>{{ bt.sl }} points</td>
+                            <td>{{ backtest.sl }} points</td>
                         </tr>
                         <tr>
                             <td>Volume Confirmation</td>
-                            <td>{{ bt.volume_confirm }}x</td>
+                            <td>{{ backtest.volume_confirm }}x</td>
                         </tr>
                     </tbody>
                 </table>
@@ -121,7 +121,7 @@
                 <div class="mb-3">
                     <h6 class="text-muted">Win/Loss Ratio</h6>
                     <div class="progress" style="height: 30px;">
-                        <div class="progress-bar bg-success-custom" style="width: {{ bt.win_rate }}%">
+                        <div class="progress-bar bg-success-custom" style="width: {{ backtest.win_rate }}%">
                             {{ "%.1f"|format(bt.win_rate) }}%
                         </div>
                         <div class="progress-bar bg-danger-custom" style="width: {{ 100 - bt.win_rate }}%">
@@ -178,28 +178,28 @@
 {% block extra_js %}
 <script>
 function rerunBacktest() {
-    window.location.href = '/backtest/new?symbol={{ bt.symbol }}&orb_duration={{ bt.orb_duration }}&target={{ bt.target }}&sl={{ bt.sl }}';
+    window.location.href = '/backtest/new?symbol={{ backtest.symbol }}&orb_duration={{ backtest.orb_duration }}&target={{ backtest.target }}&sl={{ backtest.sl }}';
 }
 
 function downloadReport() {
     const data = {
-        name: '{{ bt.name }}',
-        symbol: '{{ bt.symbol }}',
-        date_range: '{{ bt.start_date }} to {{ bt.end_date }}',
-        total_trades: {{ bt.total_trades }},
-        winning_trades: {{ bt.winning_trades }},
-        losing_trades: {{ bt.losing_trades }},
-        win_rate: {{ bt.win_rate }},
-        total_pnl: {{ bt.total_pnl }},
-        profit_factor: {{ bt.profit_factor }},
-        max_drawdown_pct: {{ bt.max_drawdown_pct }}
+        name: '{{ backtest.name }}',
+        symbol: '{{ backtest.symbol }}',
+        date_range: '{{ backtest.start_date }} to {{ backtest.end_date }}',
+        total_trades: {{ backtest.total_trades }},
+        winning_trades: {{ backtest.winning_trades }},
+        losing_trades: {{ backtest.losing_trades }},
+        win_rate: {{ backtest.win_rate }},
+        total_pnl: {{ backtest.total_pnl }},
+        profit_factor: {{ backtest.profit_factor }},
+        max_drawdown_pct: {{ backtest.max_drawdown_pct }}
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'backtest_{{ bt.id }}.json';
+    a.download = 'backtest_{{ backtest.id }}.json';
     a.click();
 }
 </script>
