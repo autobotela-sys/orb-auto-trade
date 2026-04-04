@@ -85,7 +85,8 @@ class ORBBacktestEngine:
         df = pd.DataFrame([{
             'date': d.date,
             'time': d.time,
-            'datetime': datetime.combine(d.date, d.time) if d.time else datetime.combine(d.date, time(0, 0)),
+            'datetime': datetime.combine(d.date,
+                          datetime.strptime(d.time, '%H:%M:%S').time()) if d.time else datetime.combine(d.date, time(9, 15)),
             'open': d.open,
             'high': d.high,
             'low': d.low,

@@ -170,7 +170,7 @@ class HistoricalData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     symbol = db.Column(db.String(20), nullable=False, index=True)
     date = db.Column(db.Date, nullable=False, index=True)
-    time = db.Column(db.String(8), nullable=True)  # Store as 'HH:MM:SS' string
+    time = db.Column(db.Time, nullable=True)
     open = db.Column(db.Float, nullable=False)
     high = db.Column(db.Float, nullable=False)
     low = db.Column(db.Float, nullable=False)
@@ -187,7 +187,7 @@ class HistoricalData(db.Model):
             'id': self.id,
             'symbol': self.symbol,
             'date': self.date.isoformat() if self.date else None,
-            'time': self.time,
+            'time': self.time.isoformat() if self.time else None,
             'open': self.open,
             'high': self.high,
             'low': self.low,
@@ -401,50 +401,6 @@ def health():
     }), 200
 
 
-@app.route('/init_db')
-def init_db_endpoint():
-    """Initialize database tables endpoint"""
-    try:
-        db.create_all()
-        return jsonify({'status': 'success', 'message': 'Database tables created'}), 200
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-@app.route('/test_datetime')
-def test_datetime():
-    """Test datetime parsing"""
-    import pandas as pd
-    from io import StringIO
-
-    csv_data = """DateTime,Open,High,Low,Close,Volume
-2016-01-01 09:16:00,7942.0,7950.0,7935.0,7937.15,117825
-2016-01-01 09:17:00,7938.0,7938.1,7932.55,7933.25,43200"""
-
-    df = pd.read_csv(StringIO(csv_data))
-    df.columns = df.columns.str.strip().str.lower()
-
-    # Find datetime column
-    datetime_col = None
-    for col in df.columns:
-        if col in ['datetime', 'timestamp']:
-            datetime_col = col
-            break
-
-    if datetime_col:
-        df['_datetime'] = pd.to_datetime(df[datetime_col], errors='coerce')
-        df['date'] = df['_datetime'].dt.date
-        df['time'] = df['_datetime'].dt.strftime('%H:%M:%S')
-
-    return jsonify({
-        'datetime_col': datetime_col,
-        'columns': list(df.columns),
-        'data': [
-            {'date': str(d), 'time': t} for d, t in zip(df['date'].tolist(), df['time'].tolist())
-        ]
-    }), 200
-
-
 @app.route('/api/orb_signal', methods=['POST'])
 def receive_signal():
     """Receive ORB signal from TradingView"""
@@ -528,18 +484,12 @@ def upload_historical_data():
         df = pd.read_csv(file)
 
         # Normalize column names to lowercase
-        original_columns = df.columns.tolist()
         df.columns = df.columns.str.strip().str.lower()
 
-        # Store datetime column before renaming
-        datetime_col = None
-        for col in df.columns:
-            if col in ['datetime', 'timestamp']:
-                datetime_col = col
-                break
-
-        # Column name mapping for common variations (but don't rename datetime yet)
+        # Column name mapping for common variations
         col_mapping = {
+            'datetime': 'date',
+            'timestamp': 'date',
             'oi': 'oi',
             'openinterest': 'oi'
         }
@@ -556,22 +506,25 @@ def upload_historical_data():
                 'hint': 'CSV must have: open, high, low, close (and optionally: date, time, volume)'
             }), 400
 
-        # Handle datetime/date column
-        if datetime_col:
-            # Parse datetime column
-            df['_datetime'] = pd.to_datetime(df[datetime_col], errors='coerce')
-            df['date'] = df['_datetime'].dt.date
-            # Convert time to string format 'HH:MM:SS' for SQLite compatibility
-            df['time'] = df['_datetime'].dt.strftime('%H:%M:%S')
-            df = df.drop(columns=['_datetime', datetime_col])
-        elif 'date' not in df.columns:
-            # Create dummy dates if no date column
-            df['date'] = pd.date_range(start='2020-01-01', periods=len(df), freq='D')
-            df['time'] = None
+        # Handle date column - if not present, use index
+        if 'date' not in df.columns:
+            if 'datetime' in df.columns:
+                df['date'] = pd.to_datetime(df['datetime'])
+            elif 'timestamp' in df.columns:
+                df['date'] = pd.to_datetime(df['timestamp'])
+            else:
+                # Create dummy dates if no date column
+                df['date'] = pd.date_range(start='2020-01-01', periods=len(df), freq='D')
+
+        # Handle time column
+        if 'time' not in df.columns:
+            # Extract time from datetime if available, otherwise set to None
+            if 'datetime' in df.columns:
+                df['time'] = pd.to_datetime(df['datetime']).dt.time
+            else:
+                df['time'] = None
         else:
-            # date column exists but no datetime
-            df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.date
-            df['time'] = None
+            df['time'] = pd.to_datetime(df['time'], errors='coerce').dt.time
 
         # Handle volume column - if not present, set to 0
         if 'volume' not in df.columns:
@@ -589,33 +542,35 @@ def upload_historical_data():
         # Insert into database
         count = 0
         skipped = 0
-
-        # Use bulk insert for better performance
         for _, row in df.iterrows():
-            # Handle time value - convert None to NaT first
-            time_val = row['time']
-            if pd.isna(time_val) or time_val is None:
-                row_time = None
-            else:
-                # Keep as time object for SQLAlchemy
-                row_time = time_val
+            # Check if exists - match on symbol, date, time, AND OHLC values
+            # This prevents false duplicates when time is None
+            row_time = row['time'] if pd.notna(row['time']) else None
 
-            # Skip duplicate check for now - just insert
-            data = HistoricalData(
+            existing = HistoricalData.query.filter_by(
                 symbol=symbol,
                 date=row['date'],
-                time=row_time,
-                open=float(row['open']),
-                high=float(row['high']),
-                low=float(row['low']),
-                close=float(row['close']),
-                volume=int(row['volume'])
-            )
-            db.session.add(data)
-            count += 1
+                time=row_time
+            ).filter(
+                HistoricalData.open == float(row['open']),
+                HistoricalData.close == float(row['close'])
+            ).first()
 
-        # Commit all at once
-        db.session.commit()
+            if not existing:
+                data = HistoricalData(
+                    symbol=symbol,
+                    date=row['date'],
+                    time=row_time,
+                    open=float(row['open']),
+                    high=float(row['high']),
+                    low=float(row['low']),
+                    close=float(row['close']),
+                    volume=int(row['volume'])
+                )
+                db.session.add(data)
+                count += 1
+            else:
+                skipped += 1
 
         db.session.commit()
 
@@ -759,14 +714,10 @@ def init_db():
         logger.info("✅ Database initialized")
 
 
-# Initialize database on import (for gunicorn/Railway)
-try:
-    init_db()
-except Exception as e:
-    logger.warning(f"Database init failed: {e}")
-
-
 if __name__ == '__main__':
+    # Initialize database
+    init_db()
+
     port = int(os.getenv('PORT', 8080))
     logger.info(f"🚀 Starting QuantBack Pro on port {port}")
     logger.info(f"   Live Mode: {'ENABLED' if ENABLE_AUTO_TRADING else 'DISABLED'}")
