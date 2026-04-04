@@ -1,4 +1,4 @@
-[orb-app]
+[orb-backtest]
 DATABASE_URL = "${{PostgreSQL.DATABASE_URL}}"
 SECRET_KEY = "orb-secret-key-change-in-production"
 PORT = "8080"
