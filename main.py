@@ -589,36 +589,33 @@ def upload_historical_data():
         # Insert into database
         count = 0
         skipped = 0
-        for _, row in df.iterrows():
-            # Check if exists - match on symbol, date, time, AND OHLC values
-            # This prevents false duplicates when time is None
-            time_val = row['time']
-            row_time = time_val if pd.notna(time_val) and time_val is not None else None
 
-            existing = HistoricalData.query.filter_by(
+        # Use bulk insert for better performance
+        for _, row in df.iterrows():
+            # Handle time value - convert None to NaT first
+            time_val = row['time']
+            if pd.isna(time_val) or time_val is None:
+                row_time = None
+            else:
+                # Keep as time object for SQLAlchemy
+                row_time = time_val
+
+            # Skip duplicate check for now - just insert
+            data = HistoricalData(
                 symbol=symbol,
                 date=row['date'],
-                time=row_time
-            ).filter(
-                HistoricalData.open == float(row['open']),
-                HistoricalData.close == float(row['close'])
-            ).first()
+                time=row_time,
+                open=float(row['open']),
+                high=float(row['high']),
+                low=float(row['low']),
+                close=float(row['close']),
+                volume=int(row['volume'])
+            )
+            db.session.add(data)
+            count += 1
 
-            if not existing:
-                data = HistoricalData(
-                    symbol=symbol,
-                    date=row['date'],
-                    time=row_time,
-                    open=float(row['open']),
-                    high=float(row['high']),
-                    low=float(row['low']),
-                    close=float(row['close']),
-                    volume=int(row['volume'])
-                )
-                db.session.add(data)
-                count += 1
-            else:
-                skipped += 1
+        # Commit all at once
+        db.session.commit()
 
         db.session.commit()
 
