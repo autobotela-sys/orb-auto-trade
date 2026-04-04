@@ -218,8 +218,8 @@ class ORBBacktestEngine:
                             'entry': row['close'],
                             'orb_high': orb_high,
                             'orb_low': orb_low,
-                            'sl': orb_low,
-                            'target': orb_high + self.target,
+                            'sl': row['close'] - self.sl,  # SL: entry minus SL points
+                            'target': row['close'] + self.target,  # Target: entry plus target points
                             'volume_ratio': vol_ratio,
                             'entry_time': row['datetime']
                         }
@@ -232,8 +232,8 @@ class ORBBacktestEngine:
                             'entry': row['close'],
                             'orb_high': orb_high,
                             'orb_low': orb_low,
-                            'sl': orb_high,
-                            'target': orb_low - self.target,
+                            'sl': row['close'] + self.sl,  # SL: entry plus SL points
+                            'target': row['close'] - self.target,  # Target: entry minus target points
                             'volume_ratio': vol_ratio,
                             'entry_time': row['datetime']
                         }
