@@ -4,7 +4,7 @@
     "dockerfilePath": "railway/Dockerfile"
   },
   "deploy": {
-    "startCommand": "python app.py",
+    "startCommand": "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE"
