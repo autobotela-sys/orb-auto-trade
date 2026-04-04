@@ -714,10 +714,14 @@ def init_db():
         logger.info("✅ Database initialized")
 
 
-if __name__ == '__main__':
-    # Initialize database
+# Initialize database on import (for gunicorn/Railway)
+try:
     init_db()
+except Exception as e:
+    logger.warning(f"Database init failed: {e}")
 
+
+if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
     logger.info(f"🚀 Starting QuantBack Pro on port {port}")
     logger.info(f"   Live Mode: {'ENABLED' if ENABLE_AUTO_TRADING else 'DISABLED'}")
