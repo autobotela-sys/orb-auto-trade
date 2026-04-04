@@ -67,7 +67,7 @@ class ORBBacktestEngine:
     def load_data(self) -> pd.DataFrame:
         """Load historical data from database"""
         # Import here to avoid circular import
-        from app import HistoricalData
+        from main import HistoricalData
 
         logger.info(f"Loading data for {self.symbol} from {self.start_date} to {self.end_date}")
 
